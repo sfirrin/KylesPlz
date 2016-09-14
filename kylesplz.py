@@ -11,10 +11,10 @@ def main():
     # your twitter consumer and access information goes here
 
     credentials = open('credentials.txt', 'rb')
-    apiKey = credentials.next()
-    apiSecret = credentials.next()
-    accessToken = credentials.next()
-    accessTokenSecret = credentials.next()
+    apiKey = credentials.next().strip()
+    apiSecret = credentials.next().strip()
+    accessToken = credentials.next().strip()
+    accessTokenSecret = credentials.next().strip()
 
     twitter = Twython(apiKey, apiSecret, accessToken, accessTokenSecret)
 
@@ -44,11 +44,8 @@ def main():
     # GET RANDOM COMPLIMENT AND TWEET AT PERSON
 
     lines = open('tweet_options.txt').read().splitlines()
-    myline = random.choice(lines)
+    random_line = random.choice(lines)
     # print(myline)
-
-
-    print(myline.format(luckyfollower))
 
     path = r'kyles/'
 
@@ -57,7 +54,7 @@ def main():
 
     picfind = path + random_pic
 
-    message = (myline.format(luckyfollower))
+    message = 'Hey @' + luckyfollower + ', ' + random_line
 
     with open(picfind, 'rb') as photo:
         twitter.update_status_with_media(status=message, media=photo)
