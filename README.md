@@ -1,3 +1,4 @@
 # KylesPlz
-Forked from PuppersPlz, made by Max Thielmeyer
-Tweets a photo of Kyle along with some nice words to a random follower
+Tweets a photo of Kyle at a regular interval in an AWS Lambda function
+
+The Python base was forked from [PuppersPlz](https://github.com/maxthielmeyer/PuppersPlz), made by [Max Thielmeyer](https://github.com/maxthielmeyer)
