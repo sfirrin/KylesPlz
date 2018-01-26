@@ -1,5 +1,6 @@
 import sys
 import random
+from datetime import datetime
 import os
 import time
 from twython import Twython, TwythonError
@@ -7,57 +8,86 @@ from logzero import logger as log
 import string
 import random
 
+GREETINGS = [
+    'Hello',
+    'Hi',
+    'Hey',
+    'What\'s up'
+]
 
-def tweet():
+
+IMAGES_PATH = r'kyles/'
+
+# Same order as twython constructor
+TWITTER_CRED_ENV_VARIABLE_NAMES = [
+    'API_KEY', 'API_SECRET', 'ACCESS_TOKEN', 'ACCESS_TOKEN_SECRET'
+]
+
+
+def get_api_client():
+    """ Makes client with creds from 
+    """
     # Reading secret info from environment variables
-    apiKey = os.environ.get('API_KEY')
-    apiSecret = os.environ.get('API_SECRET')
-    accessToken = os.environ.get('ACCESS_TOKEN')
-    accessTokenSecret = os.environ.get('ACCESS_TOKEN_SECRET')
+    api_key = os.environ.get('API_KEY')
+    api_secret = os.environ.get('API_SECRET')
+    access_token = os.environ.get('ACCESS_TOKEN')
+    access_token_secret = os.environ.get('ACCESS_TOKEN_SECRET')
+    twitter_creds = map(
+        lambda cred_name: os.environ.get(cred_name),
+        TWITTER_CRED_ENV_VARIABLE_NAMES
+    )
 
-    if not all([apiKey, apiSecret, accessToken, accessTokenSecret]):
-        print('You need to set up your environment variables before you can run this')
-        return
+    if not all(twitter_creds):
+        raise EnvironmentError(
+            'You need to set up your Twitter secrets in environment' 
+            'variables before you can run this'
+        )
 
-    twitter = Twython(apiKey, apiSecret, accessToken, accessTokenSecret)
+    twitter_api_client = Twython(*twitter_creds)
+    return twitter_api_client
 
-    # GET FOLLOWERS
-    followers = (twitter.get_followers_ids(screen_name="@kylesplz")['ids'])
 
-    log.info('Found these followers, {}'.format(followers))
-
-    # pick a random ID from all followers
+def tweet_kyle():
+    """ Chooses a random Kyle image file from the IMAGES_PATH dir
+        Connects to twitter with creds in env variables
+        Chooses a random line from the text file with wise Kyle sayings
+        Tweets the random line with the 
+    """
+    twitter_api_client = get_api_client()
+    # Get followers
+    followers = (twitter_api_client.get_followers_ids(screen_name="@kylesplz")['ids'])
+    # Pick a random ID from all followers
     winner_id = random.choice(followers)
-    # lookup the handle of the lucky ID
-    winner_user = twitter.lookup_user(user_id=winner_id)[0]
-
-    log.info('Lucky follower was {}'.format(winner_user))
-
+    winner_user = twitter_api_client.lookup_user(user_id=winner_id)[0]
     winner_handle = winner_user['screen_name']
 
     lines = open('tweet_options.txt').read().splitlines()
     random_line = random.choice(lines)
 
-    images_path = r'kyles/'
+    image_options = sorted(
+        filter(lambda f: os.path.isfile(os.path.join(IMAGES_PATH, f))),
+        os.listdir(IMAGES_PATH)
+    )
+    chosen_kyle = random.choice(image_options)
+    image_path = IMAGES_PATH + chosen_key
 
-    random_pic = random.choice([x for x in os.listdir(images_path)
-                                if os.path.isfile(os.path.join(images_path, x))])
+    message = '{greeting} @{handle}, {tweet_content}'.format(
+        greeting=random.choice(GREETINGS),
+        handle=winner_handle,
+        tweet_content=random_line
+    )
+    log.info('Attempting to tweet the following message: %s', message)
+    with open(image_path, 'rb') as photo:
+        tweet = twitter_api_client.update_status_with_media(
+            status=message, media=photo
+        )
 
-    picfind = images_path + random_pic
-
-    message = 'Hey @{}, {}'.format(winner_handle, random_line)
-
-    log.info('Attempting tweet: {}'.format(message))
-    with open(picfind, 'rb') as photo:
-        twitter.update_status_with_media(status=message, media=photo)
-
-    log.info('Tweet successfully made')
+    log.info('API response to tweet attempt: %s', tweet)
 
 
 def lambda_handler(event, context):
-    print event, context
-    tweet()
+    tweet_kyle()
 
-
+# For testing
 if __name__ == '__main__':
     tweet()
